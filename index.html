@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinBoard — Piyasaları Anla</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- Üst bar -->
+    <div class="topbar">
+      <div class="logo">FinBoard</div>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        <span id="connLabel">Bağlanıyor...</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Ekonomik takvim -->
+      <div style="margin-bottom:14px;">
+        <div class="section-title">Yaklaşan Ekonomik Takvim</div>
+        <div class="countdown-bar" id="countdownBar"></div>
+      </div>
+
+      <!-- Makro göstergeler -->
+      <div style="margin-bottom:4px;">
+        <div class="section-title">Makro Göstergeler</div>
+        <div class="macro-grid" id="macroGrid"></div>
+      </div>
+
+      <!-- Piyasa sekmeleri + grid -->
+      <div class="market-section-header">
+        <div class="market-section-label">Piyasa</div>
+        <div class="market-tabs">
+          <button class="mkt-tab active" onclick="switchMarket('crypto',this)">Kripto</button>
+          <button class="mkt-tab" onclick="switchMarket('bist',this)">BIST</button>
+          <button class="mkt-tab" onclick="switchMarket('nasdaq',this)">Nasdaq</button>
+        </div>
+      </div>
+      <div class="market-connector"></div>
+      <div class="market-grid" id="marketGrid"></div>
+
+      <!-- Detay paneli -->
+      <div id="detailPanel"></div>
+
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/terms.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
