@@ -252,7 +252,7 @@ function selectAsset(i) {
     priceChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: Array.from({ length: 30 }, (_, k) => `${30 - k}g`).reverse(),
+        labels: Array.from({ length: 30 }, (_, k) => { const dt = new Date(); dt.setDate(dt.getDate() - (29 - k)); return dt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }); }),
         datasets: [{ data: priceHistory, borderColor: lineColor, backgroundColor: fillColor, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: lineColor, fill: true, tension: 0.4 }]
       },
       options: {
