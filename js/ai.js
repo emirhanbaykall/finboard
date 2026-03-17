@@ -1,14 +1,7 @@
-// =============================================
-// AI ANALİZ MODÜLÜ
-// Anthropic API anahtarını buraya ekle:
-// const ANTHROPIC_API_KEY = 'sk-ant-...';
-// NOT: Gerçek sitede bu key backend'de tutulmalı!
-// =============================================
-
 async function fetchAIAnalysis(assetName, symbol, market, detail, currentPrice, change) {
-  const aiText  = document.getElementById('ai-text');
-  const aiDot   = document.getElementById('ai-dot');
-  const aiBtn   = document.getElementById('ai-refresh');
+  const aiText = document.getElementById('ai-text');
+  const aiDot  = document.getElementById('ai-dot');
+  const aiBtn  = document.getElementById('ai-refresh');
   if (!aiText) return;
 
   aiText.innerHTML = '<span class="shimmer">Analiz hazırlanıyor...</span>';
@@ -16,38 +9,15 @@ async function fetchAIAnalysis(assetName, symbol, market, detail, currentPrice, 
   if (aiDot) aiDot.classList.add('pulsing');
   if (aiBtn) aiBtn.disabled = true;
 
-  const prompt = `Sen FinBoard adlı yatırım platformunun AI analiz asistanısın. Hedef kitlen yeni başlayan veya orta seviye yatırımcılar — teknik jargondan kaçın, sade ve anlaşılır Türkçe kullan. Yatırım tavsiyesi değil, eğitici bir analiz yap.
-
-Varlık: ${assetName} (${symbol})
-Piyasa: ${market}
-Günlük değişim: ${change}
-Trend: ${detail.trend}
-Risk iştahı: ${detail.riskAppetite}
-Fiyat serisi: ${detail.streak}
-ATH'den bu yana: ${detail.athDays} gün
-
-Şu 3 bölümü yaz (her biri 2-3 cümle, toplam maksimum 120 kelime):
-1. GENEL DURUM: Varlık şu an ne durumda?
-2. DİKKAT EDİLMESİ GEREKENLER: Yeni başlayan biri ne bilmeli?
-3. SİNYAL: Sadece "İzle", "Alım Fırsatı Olabilir" veya "Temkinli Ol" seçeneklerinden birini seç ve tek cümle gerekçe yaz.
-
-JSON formatında döndür: {"durum":"...","dikkat":"...","sinyal":"İzle|Alım Fırsatı Olabilir|Temkinli Ol","sinyal_aciklama":"..."}`;
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
+      body: JSON.stringify({ assetName, symbol, market, detail, currentPrice, change })
     });
 
-    const data = await res.json();
-    const raw  = data.content?.[0]?.text || '';
-    const clean = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+    const parsed = await res.json();
+    if (parsed.error) throw new Error(parsed.error);
 
     const signalClass = parsed.sinyal === 'Alım Fırsatı Olabilir' ? 'signal-buy' : parsed.sinyal === 'Temkinli Ol' ? 'signal-sell' : 'signal-watch';
     const signalIcon  = parsed.sinyal === 'Alım Fırsatı Olabilir' ? '▲' : parsed.sinyal === 'Temkinli Ol' ? '▼' : '→';

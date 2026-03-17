@@ -134,20 +134,36 @@ function renderGrid() {
   }).join('');
 }
 
-function buildChart(ctx, basePrice, isUp, currency, days) {
+async function buildChart(ctx, basePrice, isUp, currency, days, binanceSymbol) {
   if (priceChart) { priceChart.destroy(); priceChart = null; }
-  const lineColor  = isUp ? '#34d399' : '#f87171';
-  const fillColor  = isUp ? 'rgba(52,211,153,0.08)' : 'rgba(248,113,113,0.08)';
-  const labels     = Array.from({ length: days }, (_, k) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (days - 1 - k));
-    return days <= 30
-      ? d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
-      : days <= 90
+  const lineColor = isUp ? '#34d399' : '#f87171';
+  const fillColor = isUp ? 'rgba(52,211,153,0.08)' : 'rgba(248,113,113,0.08)';
+
+  let labels, data;
+
+  // Kripto ise Binance'ten gerçek veri çek
+  if (binanceSymbol) {
+    try {
+      const res = await fetch(`/api/history?symbol=${binanceSymbol}&days=${days}`);
+      const json = await res.json();
+      if (json.prices && json.labels) {
+        labels = json.labels;
+        data   = json.prices;
+      }
+    } catch(e) {}
+  }
+
+  // Veri gelmezse sahte üret
+  if (!labels || !data) {
+    data   = generatePriceDataAround(basePrice, days);
+    labels = Array.from({ length: days }, (_, k) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (days - 1 - k));
+      return days <= 90
         ? d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
         : d.toLocaleDateString('tr-TR', { month: 'short', year: '2-digit' });
-  });
-  const data = generatePriceDataAround(basePrice, days);
+    });
+  }
 
   priceChart = new Chart(ctx, {
     type: 'line',
@@ -202,8 +218,8 @@ function setRange(days) {
   document.querySelectorAll('.cp-btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
   const ctx = document.getElementById('priceChart');
-  if (ctx && window._chartBasePrice) {
-    buildChart(ctx, window._chartBasePrice, window._chartIsUp, window._chartCurrency, days);
+  if (ctx && window._chartBasePrice !== undefined) {
+    buildChart(ctx, window._chartBasePrice, window._chartIsUp, window._chartCurrency, days, window._chartBinanceSymbol);
   }
 }
 
@@ -327,10 +343,11 @@ function selectAsset(i) {
       ? (liveData[SYMBOLS[i]]?.price || 100)
       : parseFloat(a.price.replace(/[^0-9.]/g, '')) || 100;
     const currency = priceStr.includes('₺') ? '₺' : '$';
-    window._chartBasePrice = basePrice;
-    window._chartIsUp      = isUp;
-    window._chartCurrency  = currency;
-    buildChart(ctx, basePrice, isUp, currency, 30);
+    window._chartBasePrice     = basePrice;
+    window._chartIsUp          = isUp;
+    window._chartCurrency      = currency;
+    window._chartBinanceSymbol = isCrypto ? SYMBOLS[i] : null;
+    buildChart(ctx, basePrice, isUp, currency, 30, isCrypto ? SYMBOLS[i] : null);
   }
 
   fetchAIAnalysis(a.name, a.symbol, mktLabel, d, priceStr, chgStr);
