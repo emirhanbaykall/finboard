@@ -5,6 +5,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'API anahtarı eksik' });
+
   try {
     const { assetName, symbol, market, detail, currentPrice, change } = req.body;
 
@@ -23,25 +26,30 @@ ATH'den bu yana: ${detail.athDays} gün
 2. DİKKAT EDİLMESİ GEREKENLER: Yeni başlayan biri ne bilmeli?
 3. SİNYAL: Sadece "İzle", "Alım Fırsatı Olabilir" veya "Temkinli Ol" seçeneklerinden birini seç ve tek cümle gerekçe yaz.
 
-JSON formatında döndür: {"durum":"...","dikkat":"...","sinyal":"İzle|Alım Fırsatı Olabilir|Temkinli Ol","sinyal_aciklama":"..."}`;
+Sadece JSON döndür, başka hiçbir şey yazma: {"durum":"...","dikkat":"...","sinyal":"İzle","sinyal_aciklama":"..."}`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        max_tokens: 600,
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
-    const data = await response.json();
-    const raw  = data.content?.[0]?.text || '';
-    const clean = raw.replace(/```json|```/g, '').trim();
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Anthropic API hatası: ${response.status} — ${errText}`);
+    }
+
+    const data   = await response.json();
+    const raw    = data.content?.[0]?.text || '';
+    const clean  = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
     res.status(200).json(parsed);
   } catch (err) {
