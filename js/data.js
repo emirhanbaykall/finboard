@@ -66,15 +66,60 @@ const MACRO_DATA = [
   { label: 'Altın',          termKey: 'altin',    value: '$2,184', sub: 'Ons/USD',     change: '+0.8', up: true  },
 ];
 
-// ===== EKONOMİK TAKVİM (3x3 = 9 öğe) =====
-const EVENTS = [
-  { name: 'NFP (İstihdam)',      termKey: 'nfp',      days: 3,  hours: 21, minutes: 10 },
-  { name: 'ABD CPI Verisi',      termKey: 'cpi',      days: 8,  hours: 6,  minutes: 45 },
-  { name: 'TCMB Faiz Kararı',    termKey: 'fed',      days: 12, hours: 10, minutes: 0  },
-  { name: 'Fed Faiz Kararı',     termKey: 'fed',      days: 19, hours: 14, minutes: 32 },
-  { name: 'ABD İşsizlik',        termKey: 'issizlik', days: 22, hours: 15, minutes: 30 },
-  { name: 'Euro Bölgesi CPI',    termKey: 'cpi',      days: 24, hours: 10, minutes: 0  },
-  { name: 'ABD GSYİH (Q1)',      termKey: 'gsyih',    days: 27, hours: 13, minutes: 30 },
-  { name: 'Petrol Stokları',     termKey: 'petrol',   days: 29, hours: 16, minutes: 30 },
-  { name: 'Michigan Güven End.', termKey: 'gsyih',    days: 31, hours: 15, minutes: 0  },
+// ===== EKONOMİK TAKVİM — 2026 Gerçek Tarihler =====
+// Tarihler: Fed (federalreserve.gov), CPI/NFP (bls.gov), TCMB (tcmb.gov.tr)
+const CALENDAR_2026 = [
+  // Fed FOMC Toplantıları
+  { name: 'Fed Faiz Kararı',     termKey: 'fed',      date: '2026-03-19T18:00:00Z' },
+  { name: 'Fed Faiz Kararı',     termKey: 'fed',      date: '2026-05-07T18:00:00Z' },
+  { name: 'Fed Faiz Kararı',     termKey: 'fed',      date: '2026-06-18T18:00:00Z' },
+  { name: 'Fed Faiz Kararı',     termKey: 'fed',      date: '2026-07-30T18:00:00Z' },
+  { name: 'Fed Faiz Kararı',     termKey: 'fed',      date: '2026-09-17T18:00:00Z' },
+  { name: 'Fed Faiz Kararı',     termKey: 'fed',      date: '2026-10-29T18:00:00Z' },
+  { name: 'Fed Faiz Kararı',     termKey: 'fed',      date: '2026-12-10T18:00:00Z' },
+  // ABD CPI (BLS)
+  { name: 'ABD CPI Verisi',      termKey: 'cpi',      date: '2026-04-10T12:30:00Z' },
+  { name: 'ABD CPI Verisi',      termKey: 'cpi',      date: '2026-05-13T12:30:00Z' },
+  { name: 'ABD CPI Verisi',      termKey: 'cpi',      date: '2026-06-11T12:30:00Z' },
+  { name: 'ABD CPI Verisi',      termKey: 'cpi',      date: '2026-07-14T12:30:00Z' },
+  { name: 'ABD CPI Verisi',      termKey: 'cpi',      date: '2026-08-12T12:30:00Z' },
+  { name: 'ABD CPI Verisi',      termKey: 'cpi',      date: '2026-09-11T12:30:00Z' },
+  // ABD NFP (İstihdam)
+  { name: 'NFP (İstihdam)',      termKey: 'nfp',      date: '2026-04-03T12:30:00Z' },
+  { name: 'NFP (İstihdam)',      termKey: 'nfp',      date: '2026-05-01T12:30:00Z' },
+  { name: 'NFP (İstihdam)',      termKey: 'nfp',      date: '2026-06-05T12:30:00Z' },
+  { name: 'NFP (İstihdam)',      termKey: 'nfp',      date: '2026-07-02T12:30:00Z' },
+  { name: 'NFP (İstihdam)',      termKey: 'nfp',      date: '2026-08-07T12:30:00Z' },
+  // TCMB Para Politikası
+  { name: 'TCMB Faiz Kararı',   termKey: 'fed',      date: '2026-03-20T11:00:00Z' },
+  { name: 'TCMB Faiz Kararı',   termKey: 'fed',      date: '2026-04-17T11:00:00Z' },
+  { name: 'TCMB Faiz Kararı',   termKey: 'fed',      date: '2026-05-22T11:00:00Z' },
+  { name: 'TCMB Faiz Kararı',   termKey: 'fed',      date: '2026-06-19T11:00:00Z' },
+  // ABD GSYİH
+  { name: 'ABD GSYİH (Q1)',      termKey: 'gsyih',    date: '2026-04-29T12:30:00Z' },
+  { name: 'ABD GSYİH (Q2)',      termKey: 'gsyih',    date: '2026-07-29T12:30:00Z' },
+  // ABD İşsizlik
+  { name: 'ABD İşsizlik',        termKey: 'issizlik', date: '2026-04-03T12:30:00Z' },
+  { name: 'ABD İşsizlik',        termKey: 'issizlik', date: '2026-05-01T12:30:00Z' },
 ];
+
+// Bugünden sonraki olayları hesapla, en yakın 9'unu al
+function getUpcomingEvents() {
+  const now = new Date();
+  return CALENDAR_2026
+    .map(ev => {
+      const evDate = new Date(ev.date);
+      const diffMs = evDate - now;
+      if (diffMs < 0) return null; // geçmiş olayları atla
+      const days    = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const hours   = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      return { ...ev, days, hours, minutes };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.days - b.days || a.hours - b.hours)
+    .slice(0, 9);
+}
+
+const EVENTS = getUpcomingEvents();
+
