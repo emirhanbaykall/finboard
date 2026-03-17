@@ -85,8 +85,10 @@ function updateDetailPrice(price, chgPct) {
 }
 
 // ===== RENDER FONKSİYONLARI =====
-function renderCountdown() {
-  document.getElementById('countdownBar').innerHTML = EVENTS.map(ev => `
+function renderCountdownData(events) {
+  const bar = document.getElementById('countdownBar');
+  const list = (events && events.length > 0) ? events : EVENTS;
+  bar.innerHTML = list.map(ev => `
     <div class="cd-item">
       <span class="cd-event">${term(ev.termKey, ev.name)}</span>
       <div class="cd-clock">
@@ -100,6 +102,18 @@ function renderCountdown() {
   `).join('');
   setTimeout(fixTooltipDirections, 100);
 }
+
+async function renderCountdown() {
+  renderCountdownData(null);
+  try {
+    const res  = await fetch('/api/calendar');
+    const data = await res.json();
+    if (data.events && data.events.length > 0) {
+      renderCountdownData(data.events);
+    }
+  } catch(e) {}
+}
+
 
 function renderMacro() {
   document.getElementById('macroGrid').innerHTML = MACRO_DATA.map(m => `
