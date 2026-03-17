@@ -134,18 +134,91 @@ function renderGrid() {
   }).join('');
 }
 
+function buildChart(ctx, basePrice, isUp, currency, days) {
+  if (priceChart) { priceChart.destroy(); priceChart = null; }
+  const lineColor  = isUp ? '#34d399' : '#f87171';
+  const fillColor  = isUp ? 'rgba(52,211,153,0.08)' : 'rgba(248,113,113,0.08)';
+  const labels     = Array.from({ length: days }, (_, k) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (days - 1 - k));
+    return days <= 30
+      ? d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+      : days <= 90
+        ? d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+        : d.toLocaleDateString('tr-TR', { month: 'short', year: '2-digit' });
+  });
+  const data = generatePriceDataAround(basePrice, days);
+
+  priceChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{ data, borderColor: lineColor, backgroundColor: fillColor, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: lineColor, fill: true, tension: 0.4 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1f2e', borderColor: '#3d4a6a', borderWidth: 1,
+          titleColor: '#5a6478', bodyColor: '#e2e8f0', padding: 10, displayColors: false,
+          callbacks: {
+            title: (items) => items[0].label,
+            label: (item) => {
+              const val = item.raw;
+              if (val >= 1000) return currency + val.toLocaleString('en-US', { maximumFractionDigits: 0 });
+              if (val >= 1)    return currency + val.toFixed(2);
+              return currency + val.toFixed(4);
+            }
+          }
+        },
+        zoom: {
+          pan:  { enabled: true, mode: 'x' },
+          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#5a6478', font: { size: 10 }, maxTicksLimit: 7, maxRotation: 0 }, grid: { color: '#1e2535' } },
+        y: {
+          position: 'right',
+          ticks: {
+            color: '#5a6478', font: { size: 10 },
+            callback: (val) => {
+              if (val >= 1000) return currency + (val / 1000).toFixed(1) + 'K';
+              if (val >= 1)    return currency + val.toFixed(1);
+              return currency + val.toFixed(3);
+            }
+          },
+          grid: { color: '#1e2535' }
+        }
+      }
+    }
+  });
+}
+
+function setRange(days) {
+  document.querySelectorAll('.cp-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  const ctx = document.getElementById('priceChart');
+  if (ctx && window._chartBasePrice) {
+    buildChart(ctx, window._chartBasePrice, window._chartIsUp, window._chartCurrency, days);
+  }
+}
+
 function generatePriceData() {
   let p = 100 + Math.random() * 20, arr = [];
   for (let i = 0; i < 30; i++) { p += (Math.random() - 0.48) * 4; arr.push(parseFloat(p.toFixed(2))); }
   return arr;
 }
 
-function generatePriceDataAround(currentPrice) {
+function generatePriceDataAround(currentPrice, days = 30) {
   const volatility = currentPrice * 0.018;
   const decimals   = currentPrice >= 100 ? 0 : 2;
   let arr = [];
   let p   = currentPrice * (0.88 + Math.random() * 0.12);
-  for (let i = 0; i < 29; i++) {
+  for (let i = 0; i < days - 1; i++) {
     p += (Math.random() - 0.47) * volatility;
     p  = Math.max(p, currentPrice * 0.5);
     arr.push(parseFloat(p.toFixed(decimals)));
@@ -226,6 +299,16 @@ function selectAsset(i) {
         <div class="stat-card"><div class="stat-lbl">${term('seri', 'Fiyat Serisi')}</div><div class="stat-value" style="font-size:13px;color:${d.streakUp ? '#34d399' : '#f87171'};">${d.streak}</div></div>
       </div>
 
+      <div class="chart-header">
+        <div class="chart-periods">
+          <button class="cp-btn" onclick="setRange(7)">1H</button>
+          <button class="cp-btn active" onclick="setRange(30)">1A</button>
+          <button class="cp-btn" onclick="setRange(90)">3A</button>
+          <button class="cp-btn" onclick="setRange(180)">6A</button>
+          <button class="cp-btn" onclick="setRange(365)">1Y</button>
+        </div>
+        <div style="font-size:10px;color:#3d4a6a;">Kaydır: sürükle &nbsp;·&nbsp; Yakınlaştır: scroll</div>
+      </div>
       <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
 
       <div class="ai-box">
@@ -240,62 +323,14 @@ function selectAsset(i) {
   if (priceChart) { priceChart.destroy(); priceChart = null; }
   const ctx = document.getElementById('priceChart');
   if (ctx) {
-    // Gerçekçi fiyat verisi üret — mevcut fiyatın etrafında dalgalan
     const basePrice = isCrypto
       ? (liveData[SYMBOLS[i]]?.price || 100)
       : parseFloat(a.price.replace(/[^0-9.]/g, '')) || 100;
-    const priceHistory = generatePriceDataAround(basePrice);
-    const lineColor = isUp ? '#34d399' : '#f87171';
-    const fillColor = isUp ? 'rgba(52,211,153,0.08)' : 'rgba(248,113,113,0.08)';
-    const currency  = priceStr.includes('₺') ? '₺' : '$';
-
-    priceChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: Array.from({ length: 30 }, (_, k) => { const dt = new Date(); dt.setDate(dt.getDate() - (29 - k)); return dt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }); }),
-        datasets: [{ data: priceHistory, borderColor: lineColor, backgroundColor: fillColor, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: lineColor, fill: true, tension: 0.4 }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { intersect: false, mode: 'index' },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#1a1f2e',
-            borderColor: '#3d4a6a',
-            borderWidth: 1,
-            titleColor: '#5a6478',
-            bodyColor: '#e2e8f0',
-            padding: 10,
-            displayColors: false,
-            callbacks: {
-              title: (items) => items[0].label,
-              label: (item) => {
-                const val = item.raw;
-                if (val >= 1000) return currency + val.toLocaleString('en-US', { maximumFractionDigits: 0 });
-                if (val >= 1)    return currency + val.toFixed(2);
-                return currency + val.toFixed(4);
-              }
-            }
-          }
-        },
-        scales: {
-          x: { ticks: { color: '#5a6478', font: { size: 10 }, maxTicksLimit: 6 }, grid: { color: '#1e2535' } },
-          y: {
-            ticks: {
-              color: '#5a6478', font: { size: 10 },
-              callback: (val) => {
-                if (val >= 1000) return currency + (val / 1000).toFixed(1) + 'K';
-                if (val >= 1)    return currency + val.toFixed(1);
-                return currency + val.toFixed(3);
-              }
-            },
-            grid: { color: '#1e2535' }
-          }
-        }
-      }
-    });
+    const currency = priceStr.includes('₺') ? '₺' : '$';
+    window._chartBasePrice = basePrice;
+    window._chartIsUp      = isUp;
+    window._chartCurrency  = currency;
+    buildChart(ctx, basePrice, isUp, currency, 30);
   }
 
   fetchAIAnalysis(a.name, a.symbol, mktLabel, d, priceStr, chgStr);

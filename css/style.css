@@ -124,6 +124,15 @@ body { background: #0f1117; color: #e2e8f0; font-family: -apple-system, BlinkMac
 .stat-lbl     { font-size: 11px; color: #5a6478; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
 .stat-value   { font-size: 15px; font-weight: 500; color: #e2e8f0; }
 .chart-wrap   { position: relative; width: 100%; height: 170px; margin-top: 14px; }
+.chart-header { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; margin-bottom: 6px; }
+.chart-periods { display: flex; gap: 4px; }
+.cp-btn {
+  background: transparent; border: 0.5px solid #2a3040;
+  color: #5a6478; padding: 3px 10px; border-radius: 5px;
+  cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.15s;
+}
+.cp-btn:hover  { color: #e2e8f0; border-color: #3d4a6a; }
+.cp-btn.active { color: #7c8cf8; border-color: #7c8cf8; background: #1a1f30; }
 
 .badge        { display: inline-block; padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 500; }
 .badge-green  { background: #0d2e22; color: #34d399; }
