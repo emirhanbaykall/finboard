@@ -94,9 +94,9 @@ function renderCountdownData(events) {
       <div class="cd-clock">
         <span class="cd-unit">${String(ev.days).padStart(2, '0')}g</span>
         <span class="cd-sep">:</span>
-        <span class="cd-unit">${String(ev.hours).padStart(2, '0')}s</span>
+        <span class="cd-unit">${String(ev.hours).padStart(2, '0')}sa</span>
         <span class="cd-sep">:</span>
-        <span class="cd-unit">${String(ev.minutes).padStart(2, '0')}d</span>
+        <span class="cd-unit">${String(ev.minutes).padStart(2, '0')}dk</span>
       </div>
     </div>
   `).join('');
